@@ -2,7 +2,8 @@
 
 **Cinemacloud Web OTT Service v1.0**
 
-![Cinemacloud Image](https://github.com/juseungpark97/introduce/blob/main/image/main.png) 
+![Cinemacloud Image](./images/mainImage.png)
+[시네마클라우드](https://github.com/juseungpark97/FinalProject)
 
 **개발 기간**: 2024.08 ~ 2024.09
 
@@ -125,3 +126,6 @@
 - **Axios:** HTTP 클라이언트 라이브러리로, 브라우저와 Node.js에서 모두 사용할 수 있습니다.
 - **styled-components:** CSS-in-JS 라이브러리로, JavaScript 파일 내에서 CSS를 작성할 수 있게 해줍니다.
 - **react-router-dom:** React 애플리케이션에서 여러 페이지를 구현하기 위한 라이브러리입니다.
+
+## 담당 기능
+
