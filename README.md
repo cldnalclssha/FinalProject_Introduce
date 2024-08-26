@@ -182,5 +182,150 @@ public class MovieService {
         return movieRepository.findByCastContaining(cast);
     }
 }
+```
+ - **슬라이더 컴포넌트, 썸네일 컴포넌트**
+![Slider](./images/movieSlider.png)
+
+### 주요 기능
+- **슬라이더 컴포넌트**: 영화 목록을 슬라이드 형식으로 보여주며, 반응형으로 동작합니다.
+- **썸네일 컴포넌트**: 비디오의 썸네일을 표시하고, 호버 시 비디오가 재생됩니다. 클릭 시 해당 비디오의 상세 페이지로 이동합니다.
+
+### 코드 예시
+
+```typescript
+// 슬라이더 섹션 컴포넌트
+const SliderSection = ({ title, movies }) => {
+    // 슬라이더 설정을 반환하는 함수
+    const getSliderSettings = (movieCount) => ({
+        dots: false, // 슬라이더 하단 점 표시 비활성화
+        infinite: movieCount > 4, // 영화 개수가 4개 이상일 때만 무한 루프 활성화
+        speed: 600, // 슬라이더 이동 속도
+        slidesToShow: 4, // 한 번에 표시할 슬라이드 수
+        responsive: [
+            {
+                breakpoint: 1024, // 화면 크기가 1024px 이하일 때 설정 변경
+                settings: {
+                    slidesToShow: 2,
+                    infinite: movieCount > 2
+                }
+            },
+            {
+                breakpoint: 600, // 화면 크기가 600px 이하일 때 설정 변경
+                settings: {
+                    slidesToShow: 1,
+                    infinite: movieCount > 1
+                }
+            }
+        ]
+    });
+
+    return (
+        <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>{title}</h2>
+            {/* 슬라이더 컴포넌트 */}
+            <Slider {...getSliderSettings(movies.length)} className={styles.tileRows}>
+                {movies.map((movie, index) => (
+                    <div className={styles.tile} key={index}>
+                        {/* 각 영화에 대한 썸네일 컴포넌트 */}
+                        <VideoThumbnail video={movie} />
+                    </div>
+                ))}
+            </Slider>
+        </div>
+    );
+};
+```
+```typescript
+const VideoThumbnail = memo(({ video }) => {
+    const videoRef = useRef(null); // 비디오 엘리먼트를 참조하는 ref
+    const [isHovered, setIsHovered] = useState(false); // 호버 상태를 관리
+    const [isVideoLoaded, setIsVideoLoaded] = useState(false); // 비디오가 로드되었는지 여부를 관리
+    const navigate = useNavigate();
+
+    // 비디오가 뷰포트에 들어왔을 때 자동으로 로드되도록 설정
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting && videoRef.current) {
+                    videoRef.current.preload = 'auto';
+                    videoRef.current.load();
+                    observer.unobserve(videoRef.current); // 로드가 시작되면 관찰 중지
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (videoRef.current) {
+            observer.observe(videoRef.current);
+        }
+
+        return () => {
+            if (videoRef.current) {
+                observer.unobserve(videoRef.current);
+            }
+        };
+    }, [video.url]);
+
+    // 마우스 호버 시 비디오 재생
+    const handleMouseEnter = () => {
+        setIsHovered(true);
+        if (videoRef.current && isVideoLoaded) {
+            videoRef.current.play().catch(error => console.error('Video play interrupted:', error));
+        }
+    };
+
+    // 마우스 호버 해제 시 비디오 일시 정지 및 초기화
+    const handleMouseLeave = () => {
+        setIsHovered(false);
+        if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.currentTime = 0;
+        }
+    };
+
+    // 비디오 로드 완료 시 호출되는 핸들러
+    const handleLoadedData = () => {
+        setIsVideoLoaded(true);
+        if (isHovered) {
+            videoRef.current?.play().catch(error => console.error('Video play interrupted:', error));
+        }
+    };
+
+    // 썸네일 클릭 시 상세 페이지로 이동
+    const handleClick = () => {
+        navigate(`/movie/${video.id}`);
+    };
+
+    return (
+        <div
+            className={styles.thumbnail}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            onClick={handleClick}
+        >
+            {/* 비디오 썸네일 이미지 */}
+            <img
+                src={video.thumbnailUrl}
+                alt={video.title}
+                className={styles.thumbnailImage}
+                style={{ display: isHovered && isVideoLoaded ? 'none' : 'block' }}
+            />
+            {/* 비디오 엘리먼트 */}
+            <video
+                ref={videoRef}
+                muted
+                className={styles.video}
+                style={{ display: isHovered && isVideoLoaded ? 'block' : 'none' }}
+                onLoadedData={handleLoadedData}
+            >
+                <source src={video.url} type="video/mp4" />
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    );
+});
+
+```
+
 
 
