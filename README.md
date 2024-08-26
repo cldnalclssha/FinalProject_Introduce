@@ -2,8 +2,7 @@
 
 **Cinemacloud Web OTT Service v1.0**
 
-![Cinemacloud Image](https://github.com/juseungpark97/introduce/blob/main/image/main.png)  
-[프로젝트 데모 링크](https://github.com/juseungpark97/Semiproject)
+![Cinemacloud Image](https://github.com/juseungpark97/introduce/blob/main/image/main.png) 
 
 **개발 기간**: 2024.08 ~ 2024.09
 
@@ -39,7 +38,7 @@
   - 부트스트랩 패키지 설치: `npm install --save bootstrap`
   - 리액트스트랩 패키지 설치: `npm install --save reactstrap`
 
-## 웹개발팀 인원
+## 웹개발팀 인원(총 6명)
 
 - 박주승, 이주빈, 오민혁, 이은호, 유승혁, 송용하
 
@@ -77,7 +76,7 @@
 - **백엔드**:
   - ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?style=flat-square&logo=spring-boot&logoColor=white) (프레임워크로 사용, 자체 서버)
   - JWT 기반 인증
-  - Kakao API, PayPal API
+  - Kakao API, PayPal API, GoogleSMS, AWS API, 
 - **데이터베이스**:
   - ![OracleDB](https://img.shields.io/badge/OracleDB-F80000?style=flat-square&logo=oracle&logoColor=white)
 - **개발 환경**:
@@ -86,13 +85,13 @@
   - ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=node.js&logoColor=white)
 - **서버**:
   - ![Spring Boot 자체 서버](https://img.shields.io/badge/Spring%20Boot-6DB33F?style=flat-square&logo=spring-boot&logoColor=white)
-  - Amazon EC2
-  - Amazon S3
+  - ![Amazon EC2](https://img.shields.io/badge/Amazon%20EC2-FF9900?style=flat-square&logo=amazon-aws&logoColor=white)
+  - ![Amazon S3](https://img.shields.io/badge/Amazon%20S3-569A31?style=flat-square&logo=amazon-aws&logoColor=white)
+  - ![Amazon RDS](https://img.shields.io/badge/Amazon%20RDS-527FFF?style=flat-square&logo=amazon-aws&logoColor=white)
 
 ### 사용된 API
 
-- Kakao Map API
-- Kakao Mobility API
+- Kakao Login API
 - PayPal API
 
 ## 프로젝트 설정 및 실행 방법
@@ -126,9 +125,3 @@
 - **Axios:** HTTP 클라이언트 라이브러리로, 브라우저와 Node.js에서 모두 사용할 수 있습니다.
 - **styled-components:** CSS-in-JS 라이브러리로, JavaScript 파일 내에서 CSS를 작성할 수 있게 해줍니다.
 - **react-router-dom:** React 애플리케이션에서 여러 페이지를 구현하기 위한 라이브러리입니다.
-
-### 사용 외부 서버
-
-- **Amazon S3:** 클라우드 스토리지 서비스
-- **Amazon EC2:** 유연한 가상 서버 제공
-- **Amazon RDS:** 관리형 관계형 데이터베이스 서비스
