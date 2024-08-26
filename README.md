@@ -173,14 +173,6 @@ public class MovieService {
     public List<Movie> findMoviesByGenre(String genre) {
         return movieRepository.findByGenre(genre);
     }
-
-    public List<Movie> findMoviesByTag(String tag) {
-        return movieRepository.findByTagsContaining(tag);
-    }
-
-    public List<Movie> findMoviesByCast(String cast) {
-        return movieRepository.findByCastContaining(cast);
-    }
 }
 ```
  - **슬라이더 컴포넌트, 썸네일 컴포넌트**
