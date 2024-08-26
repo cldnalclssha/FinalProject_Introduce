@@ -2,7 +2,8 @@
 
 **Cinemacloud Web OTT Service v1.0**
 
-![Cinemacloud Image](https://github.com/juseungpark97/introduce/blob/main/image/main.png) 
+![Cinemacloud Image](./images/mainImage.png)
+[시네마클라우드](https://github.com/juseungpark97/FinalProject)
 
 **개발 기간**: 2024.08 ~ 2024.09
 
@@ -125,3 +126,61 @@
 - **Axios:** HTTP 클라이언트 라이브러리로, 브라우저와 Node.js에서 모두 사용할 수 있습니다.
 - **styled-components:** CSS-in-JS 라이브러리로, JavaScript 파일 내에서 CSS를 작성할 수 있게 해줍니다.
 - **react-router-dom:** React 애플리케이션에서 여러 페이지를 구현하기 위한 라이브러리입니다.
+
+### 담당 기능
+ - **aws S3 업로드 및 다운로드**
+![HomePage](./images/homePage.png)
+### 주요 기능
+- **비디오 및 썸네일 업로드**: 사용자가 업로드한 비디오 파일과 썸네일 이미지를 Amazon S3에 업로드합니다.
+- **S3 URL 생성 및 Movie 객체 생성**: 업로드된 파일의 URL을 가져와 Movie 객체를 생성하고 데이터베이스에 저장합니다.
+### 코드 예시
+```java
+@Service
+@RequiredArgsConstructor
+public class MovieService {
+    private final AmazonS3 amazonS3;
+    private final MovieRepository movieRepository;
+
+    @Value("${aws.s3.bucketName}")
+    private String awsS3BucketName;
+
+    public Movie uploadMovie(MultipartFile file, MultipartFile thumbnail, String title, String director,
+                             String cast, int releaseYear, String synopsis, float rating, String tags) throws IOException {
+        // S3 키 설정
+        String videoKey = "movies/" + file.getOriginalFilename();
+        String thumbnailKey = "thumbnail/" + thumbnail.getOriginalFilename();
+
+        // S3에 비디오 및 썸네일 파일 업로드
+        amazonS3.putObject(new PutObjectRequest(awsS3BucketName, videoKey, file.getInputStream(), new ObjectMetadata()));
+        amazonS3.putObject(new PutObjectRequest(awsS3BucketName, thumbnailKey, thumbnail.getInputStream(), new ObjectMetadata()));
+
+        // URL 생성
+        String videoUrl = amazonS3.getUrl(awsS3BucketName, videoKey).toString();
+        String thumbnailUrl = amazonS3.getUrl(awsS3BucketName, thumbnailKey).toString();
+
+        // Movie 객체 생성 및 데이터 설정
+        Movie movie = new Movie();
+        movie.setTitle(title);
+        movie.setUrl(videoUrl);
+        movie.setThumbnailUrl(thumbnailUrl);
+        movie.setTagList(Arrays.asList(tags.split(",")));
+        movie.setCastList(Arrays.asList(cast.split(",")));
+
+        return movieRepository.save(movie);
+    }
+
+    // 필터별 검색 기능
+    public List<Movie> findMoviesByGenre(String genre) {
+        return movieRepository.findByGenre(genre);
+    }
+
+    public List<Movie> findMoviesByTag(String tag) {
+        return movieRepository.findByTagsContaining(tag);
+    }
+
+    public List<Movie> findMoviesByCast(String cast) {
+        return movieRepository.findByCastContaining(cast);
+    }
+}
+
+
