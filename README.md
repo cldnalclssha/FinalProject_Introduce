@@ -331,57 +331,6 @@ const VideoThumbnail = memo(({ video }) => {
 - **맞춤 알고리즘**: 사용자가 누른 영화들을 기반으로 맞춤형 영화를 추천합니다.
 ### 코드 예시
 ```java
-@Service
-@RequiredArgsConstructor
-public class MovieService {
-    private final AmazonS3 amazonS3;
-    private final MovieRepository movieRepository;
-
-    @Value("${aws.s3.bucketName}")
-    private String awsS3BucketName;
-
-    public Movie uploadMovie(MultipartFile file, MultipartFile thumbnail, String title, String director,
-                             String cast, int releaseYear, String synopsis, float rating, String tags) throws IOException {
-        // S3 키 설정
-        String videoKey = "movies/" + file.getOriginalFilename();
-        String thumbnailKey = "thumbnail/" + thumbnail.getOriginalFilename();
-
-        // S3에 비디오 및 썸네일 파일 업로드
-        amazonS3.putObject(new PutObjectRequest(awsS3BucketName, videoKey, file.getInputStream(), new ObjectMetadata()));
-        amazonS3.putObject(new PutObjectRequest(awsS3BucketName, thumbnailKey, thumbnail.getInputStream(), new ObjectMetadata()));
-
-        // 비디오 파일의 메타데이터 설정 
-        ObjectMetadata videoMetadata = new ObjectMetadata();
-        videoMetadata.setContentType("video/mp4"); // 비디오 파일의 MIME 타입 설정
-
-        // 썸네일 파일의 메타데이터 설정
-        ObjectMetadata thumbnailMetadata = new ObjectMetadata();
-        thumbnailMetadata.setContentType("image/jpeg"); // 썸네일 이미지의 MIME 타입 설정
-
-        // URL 생성
-        String videoUrl = amazonS3.getUrl(awsS3BucketName, videoKey).toString();
-        String thumbnailUrl = amazonS3.getUrl(awsS3BucketName, thumbnailKey).toString();
-
-        // Movie 객체 생성 및 데이터 설정
-        Movie movie = new Movie();
-        movie.setTitle(title);
-        movie.setUrl(videoUrl);
-        movie.setThumbnailUrl(thumbnailUrl);
-        movie.setTagList(Arrays.asList(tags.split(",")));
-        movie.setCastList(Arrays.asList(cast.split(",")));
-
-        return movieRepository.save(movie);
-    }
-
-    // 필터별 검색 기능
-    public List<Movie> findMoviesByGenre(String genre) {
-        return movieRepository.findByGenre(genre);
-    }
-}
-```
-
-
-```java
     private static final List<String> ALL_TAGS = Arrays.asList(
         "드라마", "로맨스", "코미디", "스릴러", "미스터리", "호러", "액션", "SF", "판타지",
         "다큐멘터리", "어드벤처", "우화", "다문화", "가족", "음악", "해적", "심리적", "비극적",
