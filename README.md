@@ -509,6 +509,101 @@ const useMoviesByCast = (cast: string) => {
         return movieService.findMoviesByCast(cast);
 ```
 
+- **구독 성공시 처리**
+![Slider](./images/movieSubscribe.png)
+### 주요 기능
+- **구독 성공시 구독처리**: 구독에 성공했을시 구독 성공 이메일 전송과 구독처리를 합니다.
+### 코드 예시
+```typescript
+// 결제 후 구독처리: 페이팔 결제후 구독처리
+@PostMapping("/pay")
+public ResponseEntity<Map<String, String>> pay(@RequestParam("sum") double sum) {
+	try {
+		Map<String, String> paymentResponse = paymentService.createPayment(sum, "USD", "paypal", "sale",
+				"Payment description", "http://localhost:8088/paypal/cancel",
+				"http://localhost:8088/paypal/success");
+		return ResponseEntity.ok(paymentResponse);
+	} catch (PayPalRESTException e) {
+		e.printStackTrace();
+		return ResponseEntity.status(500).body(Map.of("error", "Payment failed"));
+	}
+}
+const subscribeUser = async () => {
+   try {
+       const response = await axios.post('http://localhost:8088/api/users/subscribe', null, {
+           headers: {
+               'Authorization': `Bearer ${token}`,
+           },
+           params: {
+               months: 1,
+           }
+       });
+       console.log('구독이 성공적으로 처리되었습니다:', response.data);
+       // user 객체에서 이메일 추출
+       const userEmail = response.data.user.email;
+       console.log('사용자 이메일:', userEmail);
+       // 구독 성공 이메일 발송
+       if (userEmail) {
+           try {
+               await axios.post('http://localhost:8088/api/email/send-subscribe-success', { email: userEmail });
+               console.log('구독 성공 이메일이 발송되었습니다.');
+           } catch (error) {
+               console.error('구독 성공 이메일 발송 중 오류 발생:', error);
+           }
+       }
+       setTimeout(() => {
+           navigate('/profiles');
+       }, 5000);
+   } catch (error) {
+       console.error('구독 처리 중 오류 발생:', error);
+   }
+};
+```
+- **로그인 토큰 처리**
+![Slider](./images/movieOpening.png)
+### 주요 기능
+- **로그인시 토큰 처리**: 로그인시 JWT토큰과 KaKaoAccess토큰을 다르게 처리합니다.
+### 코드 예시
+
+```java
+//로그인 : 카카오 토큰 처리, 로그인(JWT 토큰) 처리	
+public String loginUser(String email, String password) throws BadCredentialsException {
+	Optional<USERS> userOpt = userRepository.findByEmail(email);
+	if (userOpt.isPresent()) {
+		USERS user = userOpt.get();
+		if ("D".equals(user.getStatus())) {
+			throw new BadCredentialsException("User account is deactivated.");
+		}
+		if (passwordEncoder.matches(password, user.getPassword())) {
+			return generateToken(user);
+		}
+	}
+	throw new BadCredentialsException("Invalid email or password");
+}
+private String generateToken(USERS user) {
+	long now = System.currentTimeMillis();
+
+
+	return Jwts.builder().setSubject(user.getEmail()).setIssuedAt(new java.util.Date(now))
+			.setExpiration(new java.util.Date(now + tokenValidity)).signWith(key).compact();
+}
+@GetMapping("/home")
+public String home(Model model, @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
+   if (customOAuth2User == null) {
+       System.out.println("User is not authenticated");
+       return "redirect:/login"; // 로그인 페이지로 리디렉션
+   }
+   // 액세스 토큰 가져오기
+   String accessToken = customOAuth2User.getToken();
+   model.addAttribute("accessToken", accessToken);
+   // 사용자 이름 가져오기
+   String name = (String) customOAuth2User.getAttribute("name");
+   model.addAttribute("name", name != null ? name : "Anonymous User");
+   // React로 리디렉션하면서 액세스 토큰 전달
+   return "redirect:http://localhost:3000/profiles?token=" + accessToken;
+}
+```
+
 
 
 
