@@ -327,9 +327,11 @@ const VideoThumbnail = memo(({ video }) => {
 ```
 
 - **사용자 맞춤 알고리즘**
+![Slider](./images/movieAlgorithm.png)
 ### 주요 기능
 - **맞춤 알고리즘**: 사용자가 누른 영화들을 기반으로 맞춤형 영화를 추천합니다.
 ### 코드 예시
+
 ```java
     private static final List<String> ALL_TAGS = Arrays.asList(
         "드라마", "로맨스", "코미디", "스릴러", "미스터리", "호러", "액션", "SF", "판타지",
@@ -397,7 +399,115 @@ const VideoThumbnail = memo(({ video }) => {
     }
 ```
 
+- **영화 자세히보기**
+![Slider](./images/movieDetail.png)
+### 주요 기능
+- **영화 비디오플레이어**: 영화 비디오 플레이어를 Material-UI를 사용해 직접 커스텀 했습니다.
+- **영화 이어보기**: 기존에 시청했던 영화로 다시 들어가면 영상을 나갔던 시점부터 이어보기 됩니다.
+### 코드 예시
+```typescript
+//비디오 플레이어 커스텀
+// MUI 아이콘 가져오기
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import FullscreenIcon from '@mui/icons-material/Fullscreen'; // 전체 화면 아이콘
+import Replay10Icon from '@mui/icons-material/Replay10'; // 10초 뒤로 아이콘
+import Forward10Icon from '@mui/icons-material/Forward10'; // 10초 앞으로 아이콘
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'; // 뒤로 가기 아이콘
 
+return (
+  <Box>
+    {/* 뒤로 가기 버튼 */}
+    <IconButton onClick={handleBack}>
+      <ArrowBackIcon style={{ color: 'white' }} /> {/* 뒤로 가기 아이콘 사용 */}
+    </IconButton>
+
+    {/* 재생/일시정지 버튼 */}
+    <IconButton onClick={handlePlayPause}>
+      {playing ? <PauseIcon /> : <PlayArrowIcon />} {/* 재생/일시정지 아이콘 사용 */}
+    </IconButton>
+
+    {/* 10초 뒤로 이동 버튼 */}
+    <IconButton onClick={() => videoRef.current.currentTime -= 10}>
+      <Replay10Icon /> {/* 10초 뒤로 이동 아이콘 사용 */}
+    </IconButton>
+
+    {/* 10초 앞으로 이동 버튼 */}
+    <IconButton onClick={handleForward10}>
+      <Forward10Icon /> {/* 10초 앞으로 이동 아이콘 사용 */}
+    </IconButton>
+
+    {/* 볼륨 조절 버튼 */}
+    <IconButton onClick={handleVolumeClick}>
+      {muted ? <VolumeOffIcon /> : <VolumeUpIcon />} {/* 음소거/음소거 해제 아이콘 사용 */}
+    </IconButton>
+
+    {/* 전체 화면 버튼 */}
+    <IconButton onClick={handleFullscreen}>
+      <FullscreenIcon /> {/* 전체 화면 아이콘 사용 */}
+    </IconButton>
+  </Box>
+);
+```
+```java
+    // 영화 이어보기
+    //시청기록 객체를 가져와서 시청기록이 있다면 반환, 그렇지 않다면 0을 반환해서 0초부터 영상을 시작하게 했습니다.
+    @GetMapping("/watchlog")
+    public ResponseEntity<Float> getWatchLog(
+            @RequestParam Long movieId,
+            @RequestParam Long profileNo) {
+        Movie movie = movieRepository.findById(movieId)
+                .orElseThrow(() -> new ResourceNotFoundException("Movie not found with id " + movieId));
+        Profile profile = profileRepository.findById(profileNo)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found with id " + profileNo));
+
+        Optional<WatchLog> watchLog = watchLogRepository.findByProfileAndMovie(profile, movie);
+        if (watchLog.isPresent()) {
+            return ResponseEntity.ok(watchLog.get().getProgressTime()); // 시청 시간 반환
+        } else {
+            return ResponseEntity.ok(0f); // 시청 기록이 없으면 0 반환
+        }
+    }
+```
+
+- **영화 자세히보기(배우별, 태그별 슬라이더)**
+![Slider](./images/movieTagAndActor.png)
+### 주요 기능
+- **태그 슬라이더**: 현재 시청하는 영화의 태그를 누르면 그 영화의 태그와 동일한 영화들을 슬라이더에 추천합니다.
+- **배우 슬라이더**: 현재 시청하는 영화의 배우 누르면 그 영화의 배우가 출연한 영화들을 슬라이더에 추천합니다.
+### 코드 예시
+```typescript
+// 특정 배우가 출연한 영화 요청
+const useMoviesByCast = (cast: string) => {
+    const [moviesByCast, setMoviesByCast] = useState<Movie[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (cast) {
+            axios.get(`http://localhost:8088/api/movies/cast?cast=${encodeURIComponent(cast)}`)
+                .then(response => {
+                    setMoviesByCast(response.data);
+                    setLoading(false);
+                })
+                .catch(error => {
+                    setError('관련 영화를 가져오는 중 오류가 발생했습니다.');
+                    setLoading(false);
+                });
+        }
+    }, [cast]);
+
+    return { moviesByCast, loading, error };
+};
+```
+```java
+// 배우가 출연한 영화 반환
+    @GetMapping("/cast")
+    public List<Movie> getMoviesByCast(@RequestParam("cast") String cast) {
+        return movieService.findMoviesByCast(cast);
+```
 
 
 
