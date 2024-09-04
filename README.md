@@ -41,7 +41,7 @@
 
 ## 웹개발팀 인원(총 6명)
 
-- 박주승, 이주빈, 오민혁, 이은호, 유승혁, 송용하
+- 이은호, 이주빈, 오민혁, 박주승승, 유승혁, 송용하
 
 ## 프로젝트 소개
 
@@ -128,60 +128,60 @@
 - **react-router-dom:** React 애플리케이션에서 여러 페이지를 구현하기 위한 라이브러리입니다.
 
 ### 담당 기능
- - **aws S3 업로드 및 다운로드**
-![HomePage](./images/homePage.png)
+ - **오프닝 페이지 및 로그인패이지 사용자 인증 및 로그인 처리 로직:**
+![image](https://github.com/user-attachments/assets/b91ab9a1-8e32-4f8c-bbc7-21b8dc15356a)
 ### 주요 기능
-- **비디오 및 썸네일 업로드**: 사용자가 업로드한 비디오 파일과 썸네일 이미지를 Amazon S3에 업로드합니다.
-- **S3 URL 생성 및 Movie 객체 생성**: 업로드된 파일의 URL을 가져와 Movie 객체를 생성하고 데이터베이스에 저장합니다.
+- **일반 로그인**: 이메일과 비밀번호를 통해 사용자를 인증하고, JWT 토큰을 생성하여 반환합니다.
+- **카카오 로그인**: OAuth2를 통해 카카오 사용자 인증을 처리하고, 카카오에서 발급한 액세스 토큰을 사용합니다.
 ### 코드 예시
 ```java
-@Service
-@RequiredArgsConstructor
-public class MovieService {
-    private final AmazonS3 amazonS3;
-    private final MovieRepository movieRepository;
-
-    @Value("${aws.s3.bucketName}")
-    private String awsS3BucketName;
-
-    public Movie uploadMovie(MultipartFile file, MultipartFile thumbnail, String title, String director,
-                             String cast, int releaseYear, String synopsis, float rating, String tags) throws IOException {
-        // S3 키 설정
-        String videoKey = "movies/" + file.getOriginalFilename();
-        String thumbnailKey = "thumbnail/" + thumbnail.getOriginalFilename();
-
-        // S3에 비디오 및 썸네일 파일 업로드
-        amazonS3.putObject(new PutObjectRequest(awsS3BucketName, videoKey, file.getInputStream(), new ObjectMetadata()));
-        amazonS3.putObject(new PutObjectRequest(awsS3BucketName, thumbnailKey, thumbnail.getInputStream(), new ObjectMetadata()));
-
-        // 비디오 파일의 메타데이터 설정 
-        ObjectMetadata videoMetadata = new ObjectMetadata();
-        videoMetadata.setContentType("video/mp4"); // 비디오 파일의 MIME 타입 설정
-
-        // 썸네일 파일의 메타데이터 설정
-        ObjectMetadata thumbnailMetadata = new ObjectMetadata();
-        thumbnailMetadata.setContentType("image/jpeg"); // 썸네일 이미지의 MIME 타입 설정
-
-        // URL 생성
-        String videoUrl = amazonS3.getUrl(awsS3BucketName, videoKey).toString();
-        String thumbnailUrl = amazonS3.getUrl(awsS3BucketName, thumbnailKey).toString();
-
-        // Movie 객체 생성 및 데이터 설정
-        Movie movie = new Movie();
-        movie.setTitle(title);
-        movie.setUrl(videoUrl);
-        movie.setThumbnailUrl(thumbnailUrl);
-        movie.setTagList(Arrays.asList(tags.split(",")));
-        movie.setCastList(Arrays.asList(cast.split(",")));
-
-        return movieRepository.save(movie);
-    }
-
-    // 필터별 검색 기능
-    public List<Movie> findMoviesByGenre(String genre) {
-        return movieRepository.findByGenre(genre);
-    }
+// 로그인 처리: 이메일과 비밀번호를 통해 사용자를 인증하고, JWT 토큰을 생성하여 반환
+public String loginUser(String email, String password) throws BadCredentialsException {
+	Optional<USERS> userOpt = userRepository.findByEmail(email);
+	if (userOpt.isPresent()) {
+		USERS user = userOpt.get();
+		// 사용자가 비활성화된 상태인지 확인
+		if ("D".equals(user.getStatus())) {
+			throw new BadCredentialsException("User account is deactivated.");
+		}
+		// 비밀번호가 일치하면 JWT 토큰 생성 및 반환
+		if (passwordEncoder.matches(password, user.getPassword())) {
+			return generateToken(user);
+		}
+	}
+	// 이메일이나 비밀번호가 잘못된 경우 예외 발생
+	throw new BadCredentialsException("Invalid email or password");
 }
+
+// JWT 토큰 생성 메서드
+private String generateToken(USERS user) {
+	long now = System.currentTimeMillis();
+
+	return Jwts.builder()
+			.setSubject(user.getEmail())  // 토큰의 주제(사용자 이메일) 설정
+			.setIssuedAt(new java.util.Date(now))  // 토큰 발급 시간 설정
+			.setExpiration(new java.util.Date(now + tokenValidity))  // 토큰 만료 시간 설정
+			.signWith(key)  // 서명 키로 토큰 서명
+			.compact();  // 토큰 생성 및 문자열로 반환
+}
+
+// 홈 페이지 요청 처리: 카카오 OAuth2로 인증된 사용자 정보를 처리
+@GetMapping("/home")
+public String home(Model model, @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
+   if (customOAuth2User == null) {
+       System.out.println("User is not authenticated");
+       return "redirect:/login"; // 인증되지 않은 경우 로그인 페이지로 리디렉션
+   }
+   // 카카오에서 발급한 액세스 토큰 가져오기
+   String accessToken = customOAuth2User.getToken();
+   model.addAttribute("accessToken", accessToken);
+   // 사용자 이름 가져오기 (없으면 'Anonymous User'로 설정)
+   String name = (String) customOAuth2User.getAttribute("name");
+   model.addAttribute("name", name != null ? name : "Anonymous User");
+   // React 애플리케이션의 프로필 페이지로 리디렉션하며 액세스 토큰 전달
+   return "redirect:http://localhost:3000/profiles?token=" + accessToken;
+}
+
 ```
  - **슬라이더 컴포넌트, 썸네일 컴포넌트**
 ![Slider](./images/movieSlider.png)
