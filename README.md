@@ -1,4 +1,4 @@
-# Cinemacloud
+ # Cinemacloud
 
 **Cinemacloud Web OTT Service v1.0**
 
@@ -183,220 +183,215 @@ public String home(Model model, @AuthenticationPrincipal CustomOAuth2User custom
 }
 
 ```
- - **슬라이더 컴포넌트, 썸네일 컴포넌트**
-![Slider](./images/movieSlider.png)
+ - ****
+![image](https://github.com/user-attachments/assets/1ed9bd21-3887-4588-9b32-e308f0872b3f)
 
 ### 주요 기능
-- **슬라이더 컴포넌트**: 영화 목록을 슬라이드 형식으로 보여주며, 반응형으로 동작합니다.
-- **썸네일 컴포넌트**: 비디오의 썸네일을 표시하고, 호버 시 비디오가 재생됩니다. 클릭 시 해당 비디오의 상세 페이지로 이동합니다.
+- **이메일 중복 확인 및 인증 코드 발송**: 이메일 중복 여부를 확인하고, 중복되지 않은 경우 인증 코드를 발송합니다.
+- **인증 코드 검증:** 사용자가 입력한 6자리 코드를 서버에서 확인하고, 올바른 경우 완료 메세지를 표시합니다.
 
 ### 코드 예시
 
 ```typescript
-// 슬라이더 섹션 컴포넌트
-const SliderSection = ({ title, movies }) => {
-    // 슬라이더 설정을 반환하는 함수
-    const getSliderSettings = (movieCount) => ({
-        dots: false, // 슬라이더 하단 점 표시 비활성화
-        infinite: movieCount > 4, // 영화 개수가 4개 이상일 때만 무한 루프 활성화
-        speed: 600, // 슬라이더 이동 속도
-        slidesToShow: 4, // 한 번에 표시할 슬라이드 수
-        responsive: [
-            {
-                breakpoint: 1024, // 화면 크기가 1024px 이하일 때 설정 변경
-                settings: {
-                    slidesToShow: 2,
-                    infinite: movieCount > 2
-                }
-            },
-            {
-                breakpoint: 600, // 화면 크기가 600px 이하일 때 설정 변경
-                settings: {
-                    slidesToShow: 1,
-                    infinite: movieCount > 1
-                }
-            }
-        ]
+// 이메일 중복 확인 및 인증 코드 발송
+const emailCheckResponse = await axios.post('http://localhost:8088/api/users/check-email', {
+  email: formData.ID,  // 사용자가 입력한 이메일
+});
+
+if (emailCheckResponse.data.exists) {
+  alert('이미 사용 중인 이메일입니다.');
+  setLoading(false);  // 로딩 상태 해제
+  return;  // 이메일이 이미 사용 중이면 중단
+}
+
+await axios.post('http://localhost:8088/api/email/send-code', {
+  email: formData.ID,  // 사용 가능한 이메일에 인증 코드 발송
+});
+setIsCodeSent(true);  // 인증 코드 발송 상태 업데이트
+alert('이메일 인증 코드가 발송되었습니다.');
+
+...
+
+// 인증 코드 검증
+const handleVerifyCode = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const code = e.target.value;
+
+  // 입력된 코드가 6자리인지 확인
+  if (code.length !== 6) {
+    return;  // 6자리가 아니면 검증하지 않음
+  }
+
+  try {
+    const response = await axios.post('http://localhost:8088/api/email/verify-code', {
+      email: formData.ID,  // 이메일과 함께 코드 전송
+      code: code,  // 사용자가 입력한 인증 코드
     });
 
-    return (
-        <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>{title}</h2>
-            {/* 슬라이더 컴포넌트 */}
-            <Slider {...getSliderSettings(movies.length)} className={styles.tileRows}>
-                {movies.map((movie, index) => (
-                    <div className={styles.tile} key={index}>
-                        {/* 각 영화에 대한 썸네일 컴포넌트 */}
-                        <VideoThumbnail video={movie} />
-                    </div>
-                ))}
-            </Slider>
-        </div>
-    );
+    if (response.data.verified) {
+      setIsEmailVerified(true);  // 이메일 인증 완료 상태 설정
+      setIsVerificationComplete(true);  // 전체 인증 완료 상태 설정
+      alert('이메일 인증이 완료되었습니다.');
+    } else {
+      alert('인증 코드가 유효하지 않습니다.');
+    }
+  } catch (error) {
+    alert('이메일 인증에 실패하였습니다.');
+  }
 };
-```
-```typescript
-const VideoThumbnail = memo(({ video }) => {
-    const videoRef = useRef(null); // 비디오 엘리먼트를 참조하는 ref
-    const [isHovered, setIsHovered] = useState(false); // 호버 상태를 관리
-    const [isVideoLoaded, setIsVideoLoaded] = useState(false); // 비디오가 로드되었는지 여부를 관리
-    const navigate = useNavigate();
 
-    // 비디오가 뷰포트에 들어왔을 때 자동으로 로드되도록 설정
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting && videoRef.current) {
-                    videoRef.current.preload = 'auto';
-                    videoRef.current.load();
-                    observer.unobserve(videoRef.current); // 로드가 시작되면 관찰 중지
-                }
-            },
-            { threshold: 0.1 }
-        );
-
-        if (videoRef.current) {
-            observer.observe(videoRef.current);
-        }
-
-        return () => {
-            if (videoRef.current) {
-                observer.unobserve(videoRef.current);
-            }
-        };
-    }, [video.url]);
-
-    // 마우스 호버 시 비디오 재생
-    const handleMouseEnter = () => {
-        setIsHovered(true);
-        if (videoRef.current && isVideoLoaded) {
-            videoRef.current.play().catch(error => console.error('Video play interrupted:', error));
-        }
-    };
-
-    // 마우스 호버 해제 시 비디오 일시 정지 및 초기화
-    const handleMouseLeave = () => {
-        setIsHovered(false);
-        if (videoRef.current) {
-            videoRef.current.pause();
-            videoRef.current.currentTime = 0;
-        }
-    };
-
-    // 비디오 로드 완료 시 호출되는 핸들러
-    const handleLoadedData = () => {
-        setIsVideoLoaded(true);
-        if (isHovered) {
-            videoRef.current?.play().catch(error => console.error('Video play interrupted:', error));
-        }
-    };
-
-    // 썸네일 클릭 시 상세 페이지로 이동
-    const handleClick = () => {
-        navigate(`/movie/${video.id}`);
-    };
-
-    return (
-        <div
-            className={styles.thumbnail}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            onClick={handleClick}
-        >
-            {/* 비디오 썸네일 이미지 */}
-            <img
-                src={video.thumbnailUrl}
-                alt={video.title}
-                className={styles.thumbnailImage}
-                style={{ display: isHovered && isVideoLoaded ? 'none' : 'block' }}
-            />
-            {/* 비디오 엘리먼트 */}
-            <video
-                ref={videoRef}
-                muted
-                className={styles.video}
-                style={{ display: isHovered && isVideoLoaded ? 'block' : 'none' }}
-                onLoadedData={handleLoadedData}
-            >
-                <source src={video.url} type="video/mp4" />
-                Your browser does not support the video tag.
-            </video>
-        </div>
-    );
-});
 ```
 
-- **사용자 맞춤 알고리즘**
-![Slider](./images/movieAlgorithm.png)
+```java
+@Autowired
+private JavaMailSender emailSender;  // 이메일 전송을 위한 JavaMailSender 객체
+
+private Map<String, String> verificationCodes = new HashMap<>();  // 이메일과 인증 코드를 저장하는 맵
+
+@PostMapping("/send-code")
+public void sendVerificationCode(@RequestBody Map<String, String> request) {
+    String email = request.get("email");  // 요청으로부터 이메일을 추출
+    String code = generateVerificationCode();  // 인증 코드 생성
+    verificationCodes.put(email, code);  // 이메일과 생성된 인증 코드를 맵에 저장
+
+    // 인증 코드를 포함한 이메일 메시지 생성 및 전송
+    SimpleMailMessage message = new SimpleMailMessage();
+    message.setTo(email);
+    message.setSubject("이메일 인증 코드");
+    message.setText("인증 코드: " + code);
+    emailSender.send(message);  // 이메일 발송
+}
+
+@PostMapping("/verify-code")
+public Map<String, Boolean> verifyCode(@RequestBody Map<String, String> request) {
+    String email = request.get("email");  // 요청으로부터 이메일을 추출
+    String code = request.get("code");  // 요청으로부터 인증 코드를 추출
+
+    // 인증 코드 검증 결과를 맵에 저장하여 반환
+    Map<String, Boolean> response = new HashMap<>();
+    response.put("verified", code.equals(verificationCodes.get(email)));  // 인증 코드 일치 여부 확인
+    return response;  // 결과 반환
+}
+
+private String generateVerificationCode() {
+    Random random = new Random();
+    int code = 100000 + random.nextInt(900000);  // 6자리 랜덤 인증 코드 생성
+    return String.valueOf(code);  // 생성된 코드를 문자열로 반환
+}
+
+```
+- ****
+![image](https://github.com/user-attachments/assets/4914b022-959e-4e09-87ab-c4e5929d8c83)
 ### 주요 기능
-- **맞춤 알고리즘**: 사용자가 누른 영화들을 기반으로 맞춤형 영화를 추천합니다.
+- **SMS 인증**: SmsService 클래스를 사용하여 휴대폰으로 인증 코드를 생성하고 전송합니다. 사용자는 받은 코드를 입력하여 인증 절차를 완료할 수 있습니다.
+- **비밀번호 변경**: 사용자가 인증된 후, JWT 토큰에서 추출한 이메일을 기반으로 비밀번호를 변경합니다. 비밀번호 변경이 성공하면 성공 메시지를, 실패하면 오류 메시지를 반환합니다.
 ### 코드 예시
 
 ```java
-    private static final List<String> ALL_TAGS = Arrays.asList(
-        "드라마", "로맨스", "코미디", "스릴러", "미스터리", "호러", "액션", "SF", "판타지",
-        "다큐멘터리", "어드벤처", "우화", "다문화", "가족", "음악", "해적", "심리적", "비극적",
-        "극복", "서스펜스", "정서적", "사랑", "운명", "실화", "철학적", "형이상학적", "패러디",
-        "반전", "서정적", "상상력", "유머", "혼란", "노스탤지어", "실험적", "미니멀리즘", "예술적",
-        "하이테크", "가상 현실", "미래적", "고전", "전쟁", "역사적", "대체 역사", "미래", "도시",
-        "자연", "실험실", "우주", "도시 전쟁", "기술", "사회적", "심리전", "성장", "관계",
-        "극단적", "아동"
-    );
+    package com.kh.last.service;
 
-    public List<Movie> getRecommendations(Long profileId) {
-        Profile profile = profileRepository.findById(profileId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid profile ID"));
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import net.nurigo.java_sdk.api.Message;
+import net.nurigo.java_sdk.exceptions.CoolsmsException;
 
-        Map<String, Integer> profileTags = parseJsonToMap(profile.getProfileVector());
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-        List<Movie> recommendations = new ArrayList<>();
-        for (Movie movie : movieRepository.findAll()) {
-            List<String> movieTags = parseJsonToList(movie.getTags());
-            double similarity = calculateCosineSimilarity(profileTags, movieTags);
-            if (similarity > 0.1) {  // 임계치 예시
-                recommendations.add(movie);
-            }
+@Service
+public class SmsService {
+
+    private static final Logger logger = LoggerFactory.getLogger(SmsService.class);
+
+    @Value("${coolsms.api_key}")
+    private String apiKey;  // CoolSMS API 키
+
+    @Value("${coolsms.api_secret}")
+    private String apiSecret;  // CoolSMS API 비밀 키
+
+    @Value("${coolsms.from}")
+    private String from;  // 발신자 번호 (CoolSMS에 등록된 번호)
+
+    // 전화번호와 해당 인증 코드를 저장하는 ConcurrentHashMap (동시성 문제 해결)
+    private final Map<String, String> verificationCodes = new ConcurrentHashMap<>();
+
+    // SMS 인증 코드를 생성하고, 지정된 전화번호로 전송
+    public void sendVerificationCode(String phoneNumber) throws CoolsmsException {
+        String generatedCode = generateVerificationCode();  // 인증 코드 생성
+        Message coolsms = new Message(apiKey, apiSecret);  // CoolSMS API 초기화
+
+        // SMS 전송에 필요한 파라미터 설정
+        HashMap<String, String> params = new HashMap<>();
+        params.put("to", phoneNumber);  // 수신자 전화번호 (국제 형식)
+        params.put("from", from);  // 발신자 전화번호
+        params.put("type", "sms");
+        params.put("text", "인증번호는 [" + generatedCode + "] 입니다.");  // 인증 코드 내용
+
+        try {
+            // SMS 전송
+            Map<String, String> response = coolsms.send(params);
+
+            // 전송 결과를 로그로 기록
+            logger.info("SMS send response: {}", response);
+        } catch (CoolsmsException e) {
+            // 예외 발생 시 에러 로그 기록 및 예외 재발생
+            logger.error("Error sending SMS: {}", e.getMessage());
+            throw e;
         }
-        return recommendations;
+
+        // 인증 코드를 맵에 저장
+        verificationCodes.put(phoneNumber, generatedCode);
+        logger.info("Sent verification code [{}] to phone number [{}]", generatedCode, phoneNumber);
     }
 
-    private double calculateCosineSimilarity(Map<String, Integer> profileTags, List<String> movieTags) {
-        int[] profileVector = createVectorFromTags(profileTags);
-        int[] movieVector = createVectorFromTags(movieTags);
-
-        double dotProduct = 0.0;
-        double profileMagnitude = 0.0;
-        double movieMagnitude = 0.0;
-
-        // Compute dot product and magnitudes
-        for (int i = 0; i < profileVector.length; i++) {
-            dotProduct += profileVector[i] * movieVector[i];
-            profileMagnitude += Math.pow(profileVector[i], 2);
-            movieMagnitude += Math.pow(movieVector[i], 2);
+    // 입력된 인증 코드가 저장된 코드와 일치하는지 확인
+    public boolean verifyCode(String phoneNumber, String code) {
+        String storedCode = verificationCodes.get(phoneNumber);
+        if (storedCode != null && storedCode.equals(code)) {
+            verificationCodes.remove(phoneNumber);  // 인증 성공 시 코드 삭제
+            logger.info("Verification successful for phone number [{}]", phoneNumber);
+            return true;
         }
-
-        profileMagnitude = Math.sqrt(profileMagnitude);
-        movieMagnitude = Math.sqrt(movieMagnitude);
-
-        // Debugging output
-        System.out.println("Dot Product: " + dotProduct);
-        System.out.println("Profile Magnitude: " + profileMagnitude);
-        System.out.println("Movie Magnitude: " + movieMagnitude);
-
-        if (profileMagnitude == 0 || movieMagnitude == 0) {
-            System.out.println("One of the vectors has zero magnitude, returning similarity of 0.0");
-            return 0.0;  // Avoid division by zero
-        }
-
-        double similarity = dotProduct / (profileMagnitude * movieMagnitude);
-        System.out.println("Raw Cosine Similarity: " + similarity);
-
-        // Ensure similarity is within [0, 1]
-        double clampedSimilarity = Math.min(Math.max(similarity, 0.0), 1.0);
-        System.out.println("Clamped Cosine Similarity: " + clampedSimilarity);
-        
-        return clampedSimilarity;
+        logger.warn("Verification failed for phone number [{}]. Expected [{}], but got [{}]", phoneNumber, storedCode, code);
+        return false;
     }
+
+    // 4자리의 랜덤 인증 코드 생성
+    private String generateVerificationCode() {
+        Random random = new Random();
+        int code = 1000 + random.nextInt(9000);  // 1000에서 9999 사이의 숫자 생성
+        return Integer.toString(code);
+    }
+}
+
+// 비밀번호 변경을 위한 컨트롤러 메소드
+@PutMapping("/change-password")
+public ResponseEntity<?> changePassword(@RequestHeader("Authorization") String token,
+                                        @RequestBody PasswordChangeRequest request) {
+    // 토큰에서 이메일 추출 (이메일 추출 로직은 userService 내에 구현)
+    String email = userService.getEmailFromToken(token);
+    
+    if (email == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");  // 토큰이 유효하지 않은 경우 처리
+    }
+
+    // 요청에 이메일 설정
+    request.setEmail(email);
+    
+    // 비밀번호 변경 로직 수행 (성공 시 true 반환)
+    boolean success = userService.myPagePwdChange(request);
+
+    if (success) {
+        return ResponseEntity.ok().body("Password changed successfully");  // 비밀번호 변경 성공 시
+    } else {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("Current password is incorrect or user not found");  // 비밀번호 변경 실패 시
+    }
+}
+
 ```
 
 - **영화 자세히보기**
