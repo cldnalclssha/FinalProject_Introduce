@@ -467,43 +467,6 @@ return (
     }
 ```
 
-- **영화 자세히보기(배우별, 태그별 슬라이더)**
-![Slider](./images/movieTagAndActor.png)
-### 주요 기능
-- **태그 슬라이더**: 현재 시청하는 영화의 태그를 누르면 그 영화의 태그와 동일한 영화들을 슬라이더에 추천합니다.
-- **배우 슬라이더**: 현재 시청하는 영화의 배우 누르면 그 영화의 배우가 출연한 영화들을 슬라이더에 추천합니다.
-### 코드 예시
-```typescript
-// 특정 배우가 출연한 영화 요청
-const useMoviesByCast = (cast: string) => {
-    const [moviesByCast, setMoviesByCast] = useState<Movie[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (cast) {
-            axios.get(`http://localhost:8088/api/movies/cast?cast=${encodeURIComponent(cast)}`)
-                .then(response => {
-                    setMoviesByCast(response.data);
-                    setLoading(false);
-                })
-                .catch(error => {
-                    setError('관련 영화를 가져오는 중 오류가 발생했습니다.');
-                    setLoading(false);
-                });
-        }
-    }, [cast]);
-
-    return { moviesByCast, loading, error };
-};
-```
-```java
-// 배우가 출연한 영화 반환
-    @GetMapping("/cast")
-    public List<Movie> getMoviesByCast(@RequestParam("cast") String cast) {
-        return movieService.findMoviesByCast(cast);
-```
-
 - **구독 성공시 처리**
 ![Slider](./images/movieSubscribe.png)
 ### 주요 기능
@@ -553,50 +516,6 @@ const subscribeUser = async () => {
        console.error('구독 처리 중 오류 발생:', error);
    }
 };
-```
-- **로그인 토큰 처리**
-![Slider](./images/movieOpening.png)
-### 주요 기능
-- **로그인시 토큰 처리**: 로그인시 JWT토큰과 KaKaoAccess토큰을 다르게 처리합니다.
-### 코드 예시
-
-```java
-//로그인 : 카카오 토큰 처리, 로그인(JWT 토큰) 처리	
-public String loginUser(String email, String password) throws BadCredentialsException {
-	Optional<USERS> userOpt = userRepository.findByEmail(email);
-	if (userOpt.isPresent()) {
-		USERS user = userOpt.get();
-		if ("D".equals(user.getStatus())) {
-			throw new BadCredentialsException("User account is deactivated.");
-		}
-		if (passwordEncoder.matches(password, user.getPassword())) {
-			return generateToken(user);
-		}
-	}
-	throw new BadCredentialsException("Invalid email or password");
-}
-private String generateToken(USERS user) {
-	long now = System.currentTimeMillis();
-
-
-	return Jwts.builder().setSubject(user.getEmail()).setIssuedAt(new java.util.Date(now))
-			.setExpiration(new java.util.Date(now + tokenValidity)).signWith(key).compact();
-}
-@GetMapping("/home")
-public String home(Model model, @AuthenticationPrincipal CustomOAuth2User customOAuth2User) {
-   if (customOAuth2User == null) {
-       System.out.println("User is not authenticated");
-       return "redirect:/login"; // 로그인 페이지로 리디렉션
-   }
-   // 액세스 토큰 가져오기
-   String accessToken = customOAuth2User.getToken();
-   model.addAttribute("accessToken", accessToken);
-   // 사용자 이름 가져오기
-   String name = (String) customOAuth2User.getAttribute("name");
-   model.addAttribute("name", name != null ? name : "Anonymous User");
-   // React로 리디렉션하면서 액세스 토큰 전달
-   return "redirect:http://localhost:3000/profiles?token=" + accessToken;
-}
 ```
 
 
