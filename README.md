@@ -46,6 +46,8 @@
 ## 프로젝트 소개
 
 **Cinemacloud**는 다양한 OTT 서비스를 제공하는 웹 애플리케이션으로, 사용자 맞춤형 콘텐츠 추천, 구독 관리, 멀티 프로필 설정 등 다양한 기능을 지원합니다.
+![image](https://github.com/user-attachments/assets/6bbba16f-f7b4-454c-a3bb-eb097f6aea80)
+
 
 ### 주요 기능
 
